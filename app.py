@@ -1,56 +1,94 @@
 import streamlit as st
 import pandas as pd
 import requests
-import io
-import re
 from datetime import datetime
+from io import BytesIO
 
-# ---- VISUAL ----
-st.set_page_config(page_title="Atualizador SELIC", page_icon="💸", layout="centered")
+# --- CONFIGURAÇÃO STREAMLIT ---
+st.set_page_config(
+    page_title="Atualização de Valores pela SELIC (Bacen)",
+    layout="wide",
+    page_icon="💸"
+)
 
-# Paleta Vipal (azul e cinza)
-VIPAL_AZUL = "#0047AB"
-VIPAL_CINZA = "#333333"
+# --- CSS VIPAL ---
+vipal_blue = "#01438F"
+vipal_red = "#E4003A"
+st.markdown(f"""
+    <style>
+    body {{
+        background-color: #f8f9fa;
+    }}
+    .block-container {{
+        padding-top: 1rem !important;
+    }}
+    .stApp {{
+        background-color: #f8f9fa;
+    }}
+    .titulo-vipal {{
+        color: {vipal_blue};
+        font-family: 'Segoe UI', 'Arial', sans-serif;
+        font-size: 2.8rem;
+        font-weight: 900;
+        margin-bottom: 0px;
+    }}
+    .subtitulo-vipal {{
+        color: #444;
+        font-size: 1.2rem;
+        margin-top: 0;
+    }}
+    .divider-vipal {{
+        border: none;
+        height: 3px;
+        background: linear-gradient(90deg, {vipal_red} 0%, {vipal_blue} 100%);
+        margin: 1rem 0;
+    }}
+    </style>
+""", unsafe_allow_html=True)
 
-# Header com logotipos
-col_logo1, col_logo2 = st.columns([1, 8])
-with col_logo1:
-    st.image("Logotipo Vipal_cores.png", width=80)
-with col_logo2:
-    st.image("fusione_logo_v2_main.png", width=120)
+# --- TOPO COM LOGOTIPO VIPAL ---
+st.markdown(
+    f"""
+    <div style='display: flex; align-items: center; gap: 24px; margin-bottom:0px'>
+        <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/Logotipo%20Vipal_positivo.png" width="120"/>
+        <div>
+            <span class='titulo-vipal'>Atualização de Valores pela SELIC</span><br>
+            <span class='subtitulo-vipal'>(Bacen)</span>
+        </div>
+    </div>
+    <hr class="divider-vipal">
+    """, unsafe_allow_html=True
+)
 
-st.markdown(f"<h1 style='color:{VIPAL_AZUL}; font-size:2.2em; margin-bottom:0;'>Atualização de Valores pela SELIC</h1>", unsafe_allow_html=True)
-st.markdown(f"<span style='color:{VIPAL_CINZA}; font-size:1.2em;'>(Bacen)</span>", unsafe_allow_html=True)
+# --- FUNÇÕES ---
+def formatar_data_input(label):
+    """Campo de data com formatação dd/mm/aaaa com barra automática"""
+    data_txt = st.text_input(label, placeholder="dd/mm/aaaa")
+    data_fmt = ""
+    if data_txt:
+        # Adiciona barra automaticamente enquanto digita
+        d = ''.join(filter(str.isdigit, data_txt))
+        if len(d) > 2:
+            d = d[:2] + '/' + d[2:]
+        if len(d) > 5:
+            d = d[:5] + '/' + d[5:9]
+        data_fmt = d
+        # Atualiza valor exibido
+        st.session_state[label] = data_fmt
+    else:
+        data_fmt = ""
+    return data_fmt
 
-st.markdown("---")
-
-# ---- FUNÇÕES ----
-def mascara_data(valor):
-    # Aplica máscara dd/mm/aaaa automaticamente
-    v = re.sub(r'\D', '', valor)
-    if len(v) > 2:
-        v = v[:2] + '/' + v[2:]
-    if len(v) > 5:
-        v = v[:5] + '/' + v[5:]
-    return v[:10]
-
-def validar_data(d):
+def validar_data(data_str):
     try:
-        datetime.strptime(d, "%d/%m/%Y")
+        datetime.strptime(data_str, "%d/%m/%Y")
         return True
-    except:
-        return False
-
-def validar_valor(v):
-    try:
-        float(str(v).replace('.', '').replace(',', '.'))
-        return True
-    except:
+    except Exception:
         return False
 
 def get_selic_diaria(data_inicial, data_final):
     url = f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados?formato=csv&dataInicial={data_inicial}&dataFinal={data_final}"
-    df = pd.read_csv(url, sep=';')
+    df = pd.read_csv(url, sep=';', decimal=',')
     df['valor'] = pd.to_numeric(df['valor'].str.replace(',', '.'), errors='coerce')
     return df
 
@@ -58,96 +96,107 @@ def calcular_atualizado(valor_inicial, df_selic):
     fator = (df_selic['valor'] / 100 + 1).prod()
     return valor_inicial * fator
 
-def formatar_reais(valor):
-    return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+def exemplo_excel():
+    """Gera arquivo de exemplo"""
+    df = pd.DataFrame({
+        "data_inicial": ["01/01/2022", "01/06/2023"],
+        "data_final":   ["01/07/2022", "01/07/2024"],
+        "valor":        [1000.00, 2500.00]
+    })
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    return output.getvalue()
 
-# ---- INTERFACE INDIVIDUAL ----
-st.subheader("Atualização Individual", divider='rainbow')
-with st.form("form_individual"):
-    data_ini = st.text_input("Data Inicial (dd/mm/aaaa)", value="", max_chars=10, help="Ex: 01/01/2010")
-    data_fim = st.text_input("Data Final (dd/mm/aaaa)", value="", max_chars=10, help="Ex: 09/07/2025")
-    valor_base = st.text_input("Valor Base (R$)", value="", max_chars=20, help="Ex: 1.000,00")
+# --- ATUALIZAÇÃO INDIVIDUAL ---
+st.markdown(f"<h2 class='titulo-vipal' style='font-size:1.8rem;margin-bottom:0.2em'>Atualização Individual</h2>", unsafe_allow_html=True)
+st.markdown(f"<hr class='divider-vipal'>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns([1,1,1])
 
-    # Máscara automática (Live no campo não é possível, mas corrige ao submit)
-    data_ini = mascara_data(data_ini)
-    data_fim = mascara_data(data_fim)
+with col1:
+    data_ini = st.text_input("Data Inicial (dd/mm/aaaa)", key="data_ini", placeholder="dd/mm/aaaa")
+    if data_ini and len(data_ini.replace('/', '')) in (4, 6, 8):
+        # Completa barras
+        d = ''.join(filter(str.isdigit, data_ini))
+        if len(d) >= 2: d = d[:2] + '/' + d[2:]
+        if len(d) >= 4: d = d[:5] + '/' + d[4:8]
+        data_ini = d
+        st.session_state["data_ini"] = data_ini
+with col2:
+    data_fim = st.text_input("Data Final (dd/mm/aaaa)", key="data_fim", placeholder="dd/mm/aaaa")
+    if data_fim and len(data_fim.replace('/', '')) in (4, 6, 8):
+        d = ''.join(filter(str.isdigit, data_fim))
+        if len(d) >= 2: d = d[:2] + '/' + d[2:]
+        if len(d) >= 4: d = d[:5] + '/' + d[4:8]
+        data_fim = d
+        st.session_state["data_fim"] = data_fim
+with col3:
+    valor_base = st.text_input("Valor Base (R$)", key="valor_base", placeholder="1.000,00")
 
-    submitted = st.form_submit_button("Calcular Valor Atualizado", use_container_width=True)
-    if submitted:
-        erro = None
-        if not (validar_data(data_ini) and validar_data(data_fim)):
-            erro = "Informe datas válidas no formato dd/mm/aaaa."
-        elif not validar_valor(valor_base):
-            erro = "Informe um valor base em reais (ex: 1.000,00)."
+if st.button("Calcular Valor Atualizado", use_container_width=True):
+    # --- Validação ---
+    try:
+        v = float(str(valor_base).replace('.', '').replace(',', '.'))
+        v_ok = v > 0
+    except Exception:
+        v_ok = False
+    data_ini_ok = validar_data(data_ini)
+    data_fim_ok = validar_data(data_fim)
+    if not (data_ini_ok and data_fim_ok and v_ok):
+        st.error("Dados inválidos. Use datas no formato dd/mm/aaaa e valor em reais.")
+    else:
+        # Formatar para API
+        dinicio = datetime.strptime(data_ini, "%d/%m/%Y").strftime("%d/%m/%Y")
+        dfim = datetime.strptime(data_fim, "%d/%m/%Y").strftime("%d/%m/%Y")
+        df_selic = get_selic_diaria(dinicio, dfim)
+        if not df_selic.empty:
+            valor_final = calcular_atualizado(float(str(valor_base).replace('.', '').replace(',', '.')), df_selic)
+            st.success(f"Valor atualizado: R$ {valor_final:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         else:
-            valor_float = float(str(valor_base).replace('.', '').replace(',', '.'))
-            try:
-                df_selic = get_selic_diaria(data_ini, data_fim)
-                if not df_selic.empty:
-                    valor_final = calcular_atualizado(valor_float, df_selic)
-                    st.success(f"Valor atualizado: **{formatar_reais(valor_final)}**")
-                else:
-                    erro = "Não há dados SELIC para o período."
-            except Exception as e:
-                erro = f"Erro ao buscar dados Bacen: {e}"
-        if erro:
-            st.error(erro)
+            st.warning("Não foram encontrados dados SELIC para o período informado.")
 
-# ---- ATUALIZAÇÃO EM MASSA ----
-st.subheader("Atualização em Massa (Arquivo Excel)", divider='rainbow')
+# --- ATUALIZAÇÃO EM MASSA ---
+st.markdown(f"<h2 class='titulo-vipal' style='font-size:1.5rem;margin-top:1.8em'>Atualização em Massa (Arquivo Excel)</h2>", unsafe_allow_html=True)
 st.caption("Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)")
-
-col_upload, col_download = st.columns([2,1])
-with col_upload:
+col_up, col_ex = st.columns([3,1])
+with col_up:
     arquivo = st.file_uploader("Selecione seu arquivo Excel", type=["xlsx"])
-
-# Exemplo para download
-exemplo = pd.DataFrame({
-    'data_inicial': ['01/01/2015', '15/05/2020'],
-    'data_final':   ['01/06/2015', '09/07/2025'],
-    'valor':        ['1.000,00',   '2.500,00']
-})
-with col_download:
-    exemplo_bytes = io.BytesIO()
-    exemplo.to_excel(exemplo_bytes, index=False)
-    st.download_button("Baixar modelo Excel", exemplo_bytes.getvalue(), file_name="modelo_atualizacao.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+with col_ex:
+    st.download_button("Baixar Exemplo de Arquivo Excel", exemplo_excel(), file_name="exemplo_atualizacao_selic.xlsx", use_container_width=True)
 
 if arquivo:
     df_entrada = pd.read_excel(arquivo)
     resultados = []
     for _, row in df_entrada.iterrows():
-        erro = None
-        d_ini = mascara_data(str(row['data_inicial']))
-        d_fim = mascara_data(str(row['data_final']))
-        v = row['valor']
-        if not (validar_data(d_ini) and validar_data(d_fim)):
-            resultados.append(None)
-            continue
-        if not validar_valor(v):
-            resultados.append(None)
-            continue
-        valor_float = float(str(v).replace('.', '').replace(',', '.'))
         try:
-            df_selic = get_selic_diaria(d_ini, d_fim)
-            if not df_selic.empty:
-                valor_corrigido = calcular_atualizado(valor_float, df_selic)
-                resultados.append(valor_corrigido)
-            else:
-                resultados.append(None)
-        except:
+            data_ini_x = pd.to_datetime(str(row['data_inicial']), dayfirst=True).strftime('%d/%m/%Y')
+            data_fim_x = pd.to_datetime(str(row['data_final']), dayfirst=True).strftime('%d/%m/%Y')
+            valor_x = float(str(row['valor']).replace('.', '').replace(',', '.'))
+            df_selic = get_selic_diaria(data_ini_x, data_fim_x)
+            valor_corrigido = calcular_atualizado(valor_x, df_selic) if not df_selic.empty else None
+            resultados.append(valor_corrigido)
+        except Exception:
             resultados.append(None)
-    df_entrada['valor_atualizado'] = [formatar_reais(v) if v is not None else "" for v in resultados]
+    df_entrada['valor_atualizado'] = [
+        f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if v else None
+        for v in resultados
+    ]
     st.dataframe(df_entrada)
-    result_bytes = io.BytesIO()
-    df_entrada.to_excel(result_bytes, index=False)
-    st.download_button("Baixar resultado atualizado", result_bytes.getvalue(), file_name="resultado_atualizado.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    # Exportação resultado
+    output_xlsx = BytesIO()
+    df_entrada.to_excel(output_xlsx, index=False)
+    st.download_button(
+        "Baixar Resultado Atualizado",
+        output_xlsx.getvalue(),
+        file_name="resultado_atualizado_selic.xlsx",
+        use_container_width=True
+    )
 
-# ---- FOOTER ----
-st.markdown("---")
-colF, colT = st.columns([1, 10])
-with colF:
-    st.image("fusione_logo_v2_main.png", width=40)
-with colT:
-    st.caption("Fusione Automação Jurídica by Gustavo Righi | Powered by Bacen API | Vipal Automação Interna")
-
-# --- FIM ---
+# --- FOOTER ---
+st.markdown(
+    """
+    <div style='margin-top:30px;display:flex;align-items:center;gap:10px;'>
+        <img src='https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png' width='48'>
+        <span style='color:#666;font-size:1rem;'>Fusione Automação Jurídica por Gustavo Righi</span>
+    </div>
+    """, unsafe_allow_html=True
+)
