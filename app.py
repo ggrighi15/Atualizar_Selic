@@ -50,7 +50,7 @@ st.markdown(f"""
 st.markdown(
     f"""
     <div style='display: flex; align-items: center; gap: 24px; margin-bottom:0px'>
-        <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/Logotipo%20Vipal_positivo.png" width="120"/>
+        <img src="https://github.com/ggrighi15/Atualizar_Selic/raw/main/Logotipo%20Vipal_positivo.png" width="120"/>
         <div>
             <span class='titulo-vipal'>Atualização de Valores pela SELIC</span><br>
             <span class='subtitulo-vipal'>(Bacen)</span>
