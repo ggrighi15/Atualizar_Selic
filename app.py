@@ -1,47 +1,53 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
-import re
+from datetime import datetime
+import io
 
-# LOGO DA VIPAL - use o nome do arquivo exatamente como está no repositório
+# Logo Vipal
 LOGO_PATH = "Logotipo Vipal_positivo.png"
+st.image(LOGO_PATH, width=170)
 
-# Paleta VIPAL
-VIPAL_AZUL = "#01438F"
-VIPAL_VERMELHO = "#E4003A"
+# Títulos ajustados
+st.title("Atualização de valores pela Selic")
+st.write("(Bacen)")
 
-# ---------- Funções utilitárias ----------
+# Entrada de dados com validação
+st.subheader("Atualização individual")
 
-def auto_formatar_data(valor):
-    """Formata a string enquanto digita para dd/mm/aaaa"""
-    v = re.sub(r"\D", "", valor)[:8]
-    if len(v) >= 5:
-        return f"{v[:2]}/{v[2:4]}/{v[4:]}"
-    elif len(v) >= 3:
-        return f"{v[:2]}/{v[2:]}"
-    else:
-        return v
+data_inicial = st.text_input("Data inicial (dd/mm/aaaa)")
+data_final = st.text_input("Data final (dd/mm/aaaa)")
+valor_base = st.number_input("Valor base (R$)", min_value=0.01, format='%f')
 
-def parse_valor(valor):
-    """Aceita 2000, 2.000,00, 2000,00, etc e retorna float"""
-    v = str(valor).replace('.', '').replace(',', '.')
-    return float(re.sub(r"[^\d.]", "", v)) if v else 0.0
-
-def validar_data(data):
-    """Verifica se está no formato dd/mm/aaaa e se é data válida"""
+def calcular_valor_selic(data_inicial, data_final, valor_base):
     try:
-        return pd.to_datetime(data, dayfirst=True, errors="raise")
-    except Exception:
+        inicio = datetime.strptime(data_inicial, "%d/%m/%Y")
+        fim = datetime.strptime(data_final, "%d/%m/%Y")
+        dias = (fim - inicio).days
+        taxa_selic_diaria = 0.000375  # Exemplo: 0.0375% ao dia
+        valor_atualizado = valor_base * ((1 + taxa_selic_diaria) ** dias)
+        return valor_atualizado
+    except:
         return None
 
-def calcular_selic(valor_base, data_inicial, data_final):
-    """Simulação de cálculo real (corrija depois pela tabela oficial SELIC/Bacen)"""
-    # EXEMPLO: juros simples 1% a.m. para teste (substitua pela tabela SELIC real depois)
-    dt_ini = pd.to_datetime(data_inicial, dayfirst=True)
-    dt_fim = pd.to_datetime(data_final, dayfirst=True)
-    meses = max((dt_fim.year - dt_ini.year) * 12 + dt_fim.month - dt_ini.month, 0)
-    return valor_base * ((1 + 0.01) ** meses)
+if st.button("Calcular valor atualizado"):
+    valor_atualizado = calcular_valor_selic(data_inicial, data_final, valor_base)
+    if valor_atualizado:
+        st.success(f"Valor atualizado: R$ {valor_atualizado:,.2f}")
+    else:
+        st.error("Verifique os dados. Formato correto: dd/mm/aaaa e valor em reais.")
 
-def gerar_excel(df):
-    output = BytesIO()
-    wit
+# Exemplo para atualização em massa
+st.subheader("Atualização em massa (arquivo Excel)")
+st.write("Colunas obrigatórias: data_inicial, data_final, valor")
+
+arquivo = st.file_uploader("Selecione seu arquivo Excel", type=["xlsx"])
+
+if arquivo:
+    df = pd.read_excel(arquivo)
+    df['Valor atualizado'] = df.apply(
+        lambda x: calcular_valor_selic(x['data_inicial'], x['data_final'], x['valor']), axis=1
+    )
+    output = io.BytesIO()
+    df.to_excel(output, index=False)
+    st.download_button(label="Baixar arquivo atualizado", data=output, file_name="atualizacao_selic.xlsx")
+
