@@ -1,20 +1,34 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
 from datetime import datetime
 
-st.set_page_config(page_title="Atualizador SELIC", page_icon="💸", layout="centered")
+st.set_page_config(page_title="Atualização de Valores SELIC", layout="centered")
 
-# --- LOGO E HEADER ---
-col1, col2 = st.columns([1,5])
-with col1:
-    st.image("fusione_logo_v2_main.png", width=80)
-with col2:
-    st.markdown("<h2 style='margin-bottom:0'>Atualização de Valores pela SELIC <span style='font-size:18px'>(Bacen)</span></h2>", unsafe_allow_html=True)
+# ---- LOGOTIPO NO TOPO ----
+st.image("Logotipo Vipal_cores.png", width=200)
+st.markdown("<h1 style='text-align: center; color: #0047AB;'>Atualização de Valores pela SELIC<br><span style='font-size:0.6em;'>(Bacen)</span></h1>", unsafe_allow_html=True)
 
-st.markdown("---")
+# ---- EXEMPLO ARQUIVO ----
+exemplo = pd.DataFrame({
+    'data_inicial': ['01/01/2020'],
+    'data_final': ['01/01/2021'],
+    'valor': [1000]
+})
+excel_exemplo = io.BytesIO()
+exemplo.to_excel(excel_exemplo, index=False)
+excel_exemplo.seek(0)
 
-# --- Funções ---
+with st.expander("Baixe o arquivo de exemplo para atualização em massa", expanded=False):
+    st.download_button(
+        label="Baixar arquivo exemplo",
+        data=excel_exemplo,
+        file_name="exemplo_atualizacao_selic.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# ---- FUNÇÕES ----
 def get_selic_diaria(data_inicial, data_final):
     url = f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados?formato=csv&dataInicial={data_inicial}&dataFinal={data_final}"
     df = pd.read_csv(url, sep=';')
@@ -25,67 +39,59 @@ def calcular_atualizado(valor_inicial, df_selic):
     fator = (df_selic['valor'] / 100 + 1).prod()
     return valor_inicial * fator
 
-# --- Atualização Individual ---
+# ---- INDIVIDUAL ----
 st.subheader("Atualização Individual")
-
-with st.form("individual_form"):
-    data_ini = st.text_input("Data Inicial (dd/mm/aaaa)", value="")
-    data_fim = st.text_input("Data Final (dd/mm/aaaa)", value="")
+col1, col2, col3 = st.columns(3)
+with col1:
+    data_ini = st.date_input("Data Inicial")
+with col2:
+    data_fim = st.date_input("Data Final")
+with col3:
     valor_base = st.text_input("Valor Base (R$)", value="")
 
-    submitted = st.form_submit_button("Calcular Valor Atualizado")
-    if submitted:
-        erro = None
-        try:
-            data_ini_dt = datetime.strptime(data_ini.strip(), "%d/%m/%Y")
-            data_fim_dt = datetime.strptime(data_fim.strip(), "%d/%m/%Y")
-            valor_base_f = float(str(valor_base).replace(",", "."))
-            if valor_base_f <= 0:
-                erro = "Informe um valor base maior que zero."
-            elif data_fim_dt < data_ini_dt:
-                erro = "Data final deve ser maior ou igual à data inicial."
-        except:
-            erro = "Dados inválidos. Use datas no formato dd/mm/aaaa e valor em reais."
-
-        if not erro:
-            df_selic = get_selic_diaria(data_ini_dt.strftime('%d/%m/%Y'), data_fim_dt.strftime('%d/%m/%Y'))
-            if not df_selic.empty:
-                valor_final = calcular_atualizado(valor_base_f, df_selic)
-                valor_final_fmt = f"R$ {valor_final:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                st.success(f"Valor atualizado: {valor_final_fmt}")
-            else:
-                st.warning("Não foram encontrados dados SELIC para o período informado.")
+if st.button("Calcular Valor Atualizado", type="primary"):
+    try:
+        valor_float = float(str(valor_base).replace('.', '').replace(',', '.'))
+        ini = data_ini.strftime('%d/%m/%Y')
+        fim = data_fim.strftime('%d/%m/%Y')
+        df_selic = get_selic_diaria(ini, fim)
+        if not df_selic.empty:
+            valor_final = calcular_atualizado(valor_float, df_selic)
+            st.success(f"Valor atualizado: R$ {valor_final:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
         else:
-            st.error(erro)
+            st.warning("Não foram encontrados dados SELIC para o período informado.")
+    except Exception as e:
+        st.error(f"Dados inválidos. Use datas no formato dd/mm/aaaa e valor em reais. Erro: {e}")
 
-# --- Atualização em Massa ---
+# ---- EM MASSA ----
 st.subheader("Atualização em Massa (Arquivo Excel)")
-st.caption("Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)")
-
+st.markdown("Colunas obrigatórias: <b>data_inicial (dd/mm/aaaa)</b>, <b>data_final (dd/mm/aaaa)</b>, <b>valor (1.000,00)</b>", unsafe_allow_html=True)
 arquivo = st.file_uploader("Selecione seu arquivo Excel", type=["xlsx"])
 if arquivo:
     df_entrada = pd.read_excel(arquivo)
     resultados = []
     for _, row in df_entrada.iterrows():
         try:
-            ini = datetime.strptime(str(row['data_inicial']).strip(), "%d/%m/%Y")
-            fim = datetime.strptime(str(row['data_final']).strip(), "%d/%m/%Y")
-            val = float(str(row['valor']).replace(",", "."))
-            df_selic = get_selic_diaria(ini.strftime('%d/%m/%Y'), fim.strftime('%d/%m/%Y'))
-            val_corrigido = calcular_atualizado(val, df_selic)
-            val_corrigido_fmt = f"{val_corrigido:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            resultados.append(val_corrigido_fmt)
-        except Exception as e:
-            resultados.append("Erro")
-    df_entrada['valor_atualizado'] = resultados
+            ini = pd.to_datetime(row['data_inicial'], dayfirst=True).strftime('%d/%m/%Y')
+            fim = pd.to_datetime(row['data_final'], dayfirst=True).strftime('%d/%m/%Y')
+            valor = float(str(row['valor']).replace('.', '').replace(',', '.'))
+            df_selic = get_selic_diaria(ini, fim)
+            valor_corrigido = calcular_atualizado(valor, df_selic)
+            resultados.append(valor_corrigido)
+        except Exception:
+            resultados.append(None)
+    df_entrada['valor_atualizado'] = [f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') if v is not None else '' for v in resultados]
     st.dataframe(df_entrada)
+    excel_result = io.BytesIO()
+    df_entrada.to_excel(excel_result, index=False)
+    excel_result.seek(0)
     st.download_button(
-        "Baixar resultado atualizado",
-        df_entrada.to_excel(index=False), file_name="resultado_atualizado.xlsx"
+        label="Exportar resultado atualizado",
+        data=excel_result,
+        file_name="resultado_atualizado.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-st.caption("![logo](fusione_logo_v2_main.png) Fusione Automação Jurídica by Gustavo Righi")
-
-# --- Logo Vipal (exemplo de uso interno, oculto por padrão) ---
-# st.image("Logotipo Vipal_positivo.svg", width=120)  # Se for exibir só para uso interno
+# ---- RODAPÉ ----
+st.caption("Fusione Automação Jurídica by Gustavo Righi")
 
