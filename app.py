@@ -5,26 +5,14 @@ import re
 
 # ----------- CONFIGURAÇÃO -----------
 
-# Troque para True para ativar modo venda Fusione (personalização total)
 MODO_FUSIONE = False
 
-# Cores padrão VIPAL
+# Paleta VIPAL
 VIPAL_AZUL = "#01438F"
 VIPAL_VERMELHO = "#E4003A"
 
-# Upload e seleção de paleta no modo Fusione
-if MODO_FUSIONE:
-    st.sidebar.markdown("## Personalização Fusione")
-    fusione_logo = st.sidebar.file_uploader("Logotipo (PNG)", type=['png'])
-    cor_primaria = st.sidebar.color_picker("Cor primária", value=VIPAL_AZUL)
-    cor_secundaria = st.sidebar.color_picker("Cor secundária", value=VIPAL_VERMELHO)
-    if fusione_logo:
-        LOGO_PATH = fusione_logo
-    else:
-        LOGO_PATH = "Logotipo Vipal_positivo.png"
-    VIPAL_AZUL, VIPAL_VERMELHO = cor_primaria, cor_secundaria
-else:
-    LOGO_PATH = "Logotipo Vipal_positivo.png"
+LOGO_PATH = "Logotipo Vipal_positivo.png"
+LOGO_FUSIONE_PATH = "fusione_logo_v2_main.png"  # Ajuste para o nome correto do arquivo
 
 # Índices disponíveis
 INDICES = {
@@ -87,140 +75,126 @@ def exemplo_excel():
 
 st.set_page_config(page_title="Atualização de valores", layout="wide")
 
-# CSS para forçar Montserrat
 st.markdown("""
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
     <style>
-        html, body, [class*="css"]  {
-            font-family: 'Montserrat', sans-serif !important;
-        }
+        html, body, [class*="css"]  { font-family: 'Montserrat', sans-serif !important; }
+        .montserrat { font-family: 'Montserrat', sans-serif !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# Linha principal com logo e título grande centralizado, índice logo abaixo
-col_logo, col_titulo = st.columns([1.5, 8])
+# Linha principal com logo à esquerda, título logo abaixo alinhado à esquerda
+col_logo, col_gap, col_ref = st.columns([1.5, 0.2, 5])
 
 with col_logo:
-    st.image(LOGO_PATH, width=150 if not MODO_FUSIONE else 110)
+    st.image(LOGO_PATH, width=220)
+    st.write("")  # Força espaço
 
-with col_titulo:
+with col_ref:
     st.markdown(
-        f"""
-        <div style="text-align:center;">
-            <span style="font-size:2.6rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
-                Atualização de valores pela <span style="text-transform:capitalize;">{{indice}}</span>
-            </span>
-        </div>
-        """.replace("{indice}", "Selic"),  # Default antes do selectbox
+        f"""<div style="margin-top:-20px; margin-bottom:-7px;">
+                <span style="font-size:2.4rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
+                    Atualização de valores
+                </span>
+            </div>""",
         unsafe_allow_html=True,
     )
 
-# Seleção de índice centralizada, logo abaixo do título principal
-indice_nome = st.selectbox(
-    "Escolha o índice", list(INDICES.keys()), key="indice_select", index=0,
-    help="Selecione o índice desejado"
-)
-# Atualiza o título com o índice selecionado
-st.markdown(
-    f"""
-    <div style="text-align:center;">
-        <span style="font-size:2.6rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
-            Atualização de valores pela <span style="text-transform:capitalize;">{indice_nome}</span>
-        </span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-# Bacen etc à direita, logo abaixo
-st.markdown(
-    f"""
-    <div style="width:100%;text-align:right;margin-top:-1.1rem;margin-bottom:1rem;">
-        <span style="font-size:1.1rem;color:#444;font-family:Montserrat,sans-serif;">{INDICES[indice_nome]["fonte"]}</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# Barra colorida
-st.markdown(
-    f"<div style='height:7px;width:100%;background:linear-gradient(90deg,{VIPAL_VERMELHO},#019FFF,#8e44ad);border-radius:8px;margin-bottom:2rem;'></div>",
-    unsafe_allow_html=True
-)
-
-# Seções menores (Atualização individual e em massa)
-st.markdown(
-    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.5rem;'>Atualização individual</h3>",
-    unsafe_allow_html=True
-)
-
-col1, col2, col3 = st.columns([1,1,1])
-
-with col1:
-    data_inicial = st.text_input(
-        "Data inicial (dd/mm/aaaa)",
-        max_chars=10,
-        help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
+# Índice e fonte de referência (Bacen/IBGE/etc) 
+col_indice, col_fonte = st.columns([3,1])
+with col_indice:
+    indice_nome = st.selectbox(
+        "Escolha o índice", list(INDICES.keys()), key="indice_select", index=0,
+        help="Selecione o índice desejado"
     )
-    data_inicial_formatada = data_inicial
-    if data_inicial and ("/" not in data_inicial or len(data_inicial.replace("/", "")) == 8):
-        data_inicial_formatada = auto_formatar_data(data_inicial)
-
-with col2:
-    data_final = st.text_input(
-        "Data final (dd/mm/aaaa)",
-        max_chars=10,
-        help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
-    )
-    data_final_formatada = data_final
-    if data_final and ("/" not in data_final or len(data_final.replace("/", "")) == 8):
-        data_final_formatada = auto_formatar_data(data_final)
-
-with col3:
-    valor_base = st.text_input(
-        "Valor base (R$)",
-        max_chars=20,
-        help="Digite o valor. Ex: 1000 ou 2.000,00"
-    )
-
-calcular = st.button(
-    "Calcular valor atualizado",
-    use_container_width=True,
-    type="primary"
-)
-
-mensagem = ""
-cor_mensagem = "#FFDFDF"
-resultado = None
-
-if calcular:
-    dt_ini = validar_data(data_inicial_formatada)
-    dt_fim = validar_data(data_final_formatada)
-    try:
-        valor = parse_valor(valor_base)
-    except Exception:
-        valor = None
-
-    if not (dt_ini and dt_fim and valor_base.strip() and valor is not None and valor > 0):
-        mensagem = "Verifique os dados. Formato correto: dd/mm/aaaa e valor em reais."
-        cor_mensagem = "#FFDFDF"
-    elif dt_ini > dt_fim:
-        mensagem = "A data final deve ser posterior à data inicial."
-        cor_mensagem = "#FFDFDF"
-    else:
-        atualizado = calcular_indice(valor, data_inicial_formatada, data_final_formatada, indice_nome)
-        mensagem = f"Valor atualizado: R$ {atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        cor_mensagem = "#D2FAD2"
-        resultado = atualizado
-
-if mensagem:
+with col_fonte:
     st.markdown(
-        f"<div style='margin-top:1rem;padding:1rem 1.2rem;background:{cor_mensagem};border-radius:10px;font-size:1.1rem;color:#333;font-weight:500;'>{mensagem}</div>",
-        unsafe_allow_html=True,
+        f"""<div style="text-align:right; margin-top:32px; color:#555; font-size:1.2rem;">
+            {INDICES[indice_nome]["fonte"]}
+        </div>""",
+        unsafe_allow_html=True
     )
 
-# ---- Atualização em massa ----
 st.markdown(
-    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;margin-top:3rem;font-size:1.5rem;'>Atualização em massa (arquivo Excel)</h3>",
+    f"""<div style='height:7px;width:100%;background:linear-gradient(90deg,{VIPAL_VERMELHO},#019FFF,#8e44ad);border-radius:8px;margin-bottom:2rem;'></div>""",
+    unsafe_allow_html=True
+)
+
+# Upload de arquivo Excel oculta atualização individual
+uploaded_file = st.file_uploader(
+    "Selecione seu arquivo Excel para atualização em massa (opcional)",
+    type=["xlsx"], key="uploader_massa"
+)
+
+if not uploaded_file:
+    st.markdown(
+        f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;'>Atualização individual</h3>",
+        unsafe_allow_html=True
+    )
+    col1, col2, col3 = st.columns([1,1,1])
+    with col1:
+        data_inicial = st.text_input(
+            "Data inicial (dd/mm/aaaa)",
+            max_chars=10,
+            help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
+        )
+        data_inicial_formatada = data_inicial
+        if data_inicial and ("/" not in data_inicial or len(data_inicial.replace("/", "")) == 8):
+            data_inicial_formatada = auto_formatar_data(data_inicial)
+    with col2:
+        data_final = st.text_input(
+            "Data final (dd/mm/aaaa)",
+            max_chars=10,
+            help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
+        )
+        data_final_formatada = data_final
+        if data_final and ("/" not in data_final or len(data_final.replace("/", "")) == 8):
+            data_final_formatada = auto_formatar_data(data_final)
+    with col3:
+        valor_base = st.text_input(
+            "Valor base (R$)",
+            max_chars=20,
+            help="Digite o valor. Ex: 1000 ou 2.000,00"
+        )
+
+    calcular = st.button(
+        "Calcular valor atualizado",
+        use_container_width=True,
+        type="primary"
+    )
+
+    mensagem = ""
+    cor_mensagem = "#FFDFDF"
+    resultado = None
+
+    if calcular:
+        dt_ini = validar_data(data_inicial_formatada)
+        dt_fim = validar_data(data_final_formatada)
+        try:
+            valor = parse_valor(valor_base)
+        except Exception:
+            valor = None
+
+        if not (dt_ini and dt_fim and valor_base.strip() and valor is not None and valor > 0):
+            mensagem = "Verifique os dados. Formato correto: dd/mm/aaaa e valor em reais."
+            cor_mensagem = "#FFDFDF"
+        elif dt_ini > dt_fim:
+            mensagem = "A data final deve ser posterior à data inicial."
+            cor_mensagem = "#FFDFDF"
+        else:
+            atualizado = calcular_indice(valor, data_inicial_formatada, data_final_formatada, indice_nome)
+            mensagem = f"Valor atualizado: R$ {atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            cor_mensagem = "#D2FAD2"
+            resultado = atualizado
+
+    if mensagem:
+        st.markdown(
+            f"<div style='margin-top:1rem;padding:1rem 1.2rem;background:{cor_mensagem};border-radius:10px;font-size:1.1rem;color:#333;font-weight:500;'>{mensagem}</div>",
+            unsafe_allow_html=True,
+        )
+
+st.markdown(
+    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;margin-top:2.3rem;font-size:1.25rem;'>Atualização em massa (arquivo Excel)</h3>",
     unsafe_allow_html=True
 )
 st.write("Colunas obrigatórias: **data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)**")
@@ -228,6 +202,10 @@ st.write("Colunas obrigatórias: **data_inicial (dd/mm/aaaa), data_final (dd/mm/
 exemplo_df = exemplo_excel()
 exemplo_bytes = gerar_excel(exemplo_df)
 
+st.markdown(
+    """<div style='display:flex;justify-content:center;margin-top:12px;'>""",
+    unsafe_allow_html=True,
+)
 col_e1, col_e2 = st.columns([1,2])
 with col_e1:
     st.download_button(
@@ -239,11 +217,9 @@ with col_e1:
         help="Download do modelo Excel correto"
     )
 with col_e2:
-    arquivo = st.file_uploader(
-        "Selecione seu arquivo Excel",
-        type=["xlsx"],
-        help="Arraste e solte um arquivo .xlsx com as colunas corretas"
-    )
+    arquivo = uploaded_file
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 if arquivo:
     try:
@@ -263,7 +239,7 @@ if arquivo:
                 valores_atualizados.append(va)
             df["índice"] = indices
             df["valor atualizado"] = valores_atualizados
-            st.dataframe(df)
+            st.dataframe(df, use_container_width=True)
             st.download_button(
                 "Exportar atualização em massa",
                 gerar_excel(df),
@@ -276,7 +252,13 @@ if arquivo:
     except Exception as e:
         st.error(f"Erro ao processar o arquivo: {e}")
 
+# Rodapé com logo Fusione e assinatura
 st.markdown(
-    "<div style='margin-top:3rem;font-size:1.1rem;color:#555;font-family:Montserrat,sans-serif;'>Fusione Automação Jurídica por Gustavo Righi</div>",
+    f"""
+    <div style='margin-top:2.8rem;display:flex;align-items:center;justify-content:center;gap:15px;'>
+        <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png" style="height:32px;" />
+        <span style="font-size:1.09rem;color:#555;font-family:Montserrat,sans-serif;">Fusione | Automações | por Gustavo Giovani Righi</span>
+    </div>
+    """,
     unsafe_allow_html=True
 )
