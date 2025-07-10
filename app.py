@@ -8,7 +8,7 @@ st.set_page_config(page_title="Atualização de Valores SELIC", layout="centered
 
 # ---- LOGOTIPO NO TOPO ----
 st.image("Logotipo Vipal_cores.png", width=200)
-st.markdown("<h1 style='text-align: center; color: #0047AB;'>Atualização de Valores pela SELIC<br><span style='font-size:0.6em;'>(Bacen)</span></h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #0047AB;font-family:Montserrat,sans-serif;'>Atualização de Valores pela SELIC<br><span style='font-size:0.6em;'>(Bacen)</span></h1>", unsafe_allow_html=True)
 
 # ---- EXEMPLO ARQUIVO ----
 exemplo = pd.DataFrame({
@@ -39,6 +39,18 @@ def calcular_atualizado(valor_inicial, df_selic):
     fator = (df_selic['valor'] / 100 + 1).prod()
     return valor_inicial * fator
 
+# --- AUXILIARES PARA MASSA (auto barra datas, parse valor)
+def auto_formatar_data(valor):
+    v = str(valor)
+    v = v.replace("-", "").replace("/", "")
+    if len(v) == 8:
+        return f"{v[:2]}/{v[2:4]}/{v[4:]}"
+    return valor
+
+def parse_valor(valor):
+    v = str(valor).replace('.', '').replace(',', '.')
+    return float(v) if v else 0.0
+
 # ---- INDIVIDUAL ----
 st.subheader("Atualização Individual")
 col1, col2, col3 = st.columns(3)
@@ -67,68 +79,43 @@ if st.button("Calcular Valor Atualizado", type="primary"):
 st.subheader("Atualização em Massa (Arquivo Excel)")
 st.markdown("Colunas obrigatórias: <b>data_inicial (dd/mm/aaaa)</b>, <b>data_final (dd/mm/aaaa)</b>, <b>valor (1.000,00)</b>", unsafe_allow_html=True)
 arquivo = st.file_uploader("Selecione seu arquivo Excel", type=["xlsx"])
+
 if arquivo:
     df_entrada = pd.read_excel(arquivo)
-    resultados = []
-    for _, row in df_entrada.iterrows():
-        try:
-            ini = pd.to_datetime(row['data_inicial'], dayfirst=True).strftime('%d/%m/%Y')
-            fim = pd.to_datetime(row['data_final'], dayfirst=True).strftime('%d/%m/%Y')
-            valor = float(str(row['valor']).replace('.', '').replace(',', '.'))
-            df_selic = get_selic_diaria(ini, fim)
-            valor_corrigido = calcular_atualizado(valor, df_selic)
-            resultados.append(valor_corrigido)
-        except Exception:
-            resultados.append(None)
-    df_entrada['valor_atualizado'] = [f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') if v is not None else '' for v in resultados]
-    st.dataframe(df_entrada)
-    excel_result = io.BytesIO()
-    df_entrada.to_excel(excel_result, index=False)
-    excel_result.seek(0)
-    st.download_button(
-        label="Exportar resultado atualizado",
-        data=excel_result,
-        file_name="resultado_atualizado.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-# --- PROCESSAMENTO EM MASSA (ATUALIZAÇÃO EM EXCEL) ---
-if uploaded_file:
-    try:
-        df = pd.read_excel(uploaded_file)
-        # Ajusta nomes das colunas (deixa flexível para nomes equivalentes)
-        df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
-        required = ["data_inicial", "data_final", "valor"]
-        if all(col in df.columns for col in required):
-            # Formata datas e valores (automaticamente inclui as barras)
-            df["data_inicial"] = df["data_inicial"].astype(str).apply(auto_formatar_data)
-            df["data_final"] = df["data_final"].astype(str).apply(auto_formatar_data)
-            df["valor"] = df["valor"].astype(str).apply(parse_valor)
-            # Botão de cálculo em massa
-            if st.button("Calcular valores em massa", use_container_width=True, type="primary"):
-                df["valor_atualizado"] = df.apply(
-                    lambda row: calcular_indice(
-                        row["valor"], row["data_inicial"], row["data_final"], indice_nome
-                    ),
-                    axis=1,
-                )
-                # Formata valor atualizado para exibição BR
-                df["valor_atualizado"] = df["valor_atualizado"].apply(
-                    lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                )
-                st.dataframe(df, use_container_width=True)
-                # Botão para exportar resultados
-                st.download_button(
-                    "Exportar resultados (Excel)",
-                    gerar_excel(df),
-                    file_name="resultado_atualizacao.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-        else:
-            st.warning("Arquivo Excel inválido. Verifique se contém as colunas obrigatórias.")
-    except Exception as e:
-        st.error(f"Erro ao processar arquivo: {e}")
+    # Padroniza nomes, inclui barras nas datas e converte valores
+    df_entrada.columns = [col.strip().lower().replace(" ", "_") for col in df_entrada.columns]
+    if all(col in df_entrada.columns for col in ["data_inicial", "data_final", "valor"]):
+        df_entrada["data_inicial"] = df_entrada["data_inicial"].astype(str).apply(auto_formatar_data)
+        df_entrada["data_final"] = df_entrada["data_final"].astype(str).apply(auto_formatar_data)
+        df_entrada["valor"] = df_entrada["valor"].astype(str).apply(parse_valor)
+        if st.button("Calcular valores em massa", type="primary"):
+            resultados = []
+            for _, row in df_entrada.iterrows():
+                try:
+                    ini = row['data_inicial']
+                    fim = row['data_final']
+                    valor = row['valor']
+                    # usa dd/mm/yyyy
+                    dtini = pd.to_datetime(ini, dayfirst=True).strftime('%d/%m/%Y')
+                    dtfim = pd.to_datetime(fim, dayfirst=True).strftime('%d/%m/%Y')
+                    df_selic = get_selic_diaria(dtini, dtfim)
+                    valor_corrigido = calcular_atualizado(valor, df_selic)
+                    resultados.append(valor_corrigido)
+                except Exception:
+                    resultados.append(None)
+            df_entrada['valor_atualizado'] = [f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') if v is not None else '' for v in resultados]
+            st.dataframe(df_entrada)
+            excel_result = io.BytesIO()
+            df_entrada.to_excel(excel_result, index=False)
+            excel_result.seek(0)
+            st.download_button(
+                label="Exportar resultado atualizado",
+                data=excel_result,
+                file_name="resultado_atualizado.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    else:
+        st.warning("Arquivo Excel inválido. Verifique se contém as colunas obrigatórias.")
 
 # ---- RODAPÉ ----
 st.caption("Fusione Automação Jurídica by Gustavo Righi")
-
