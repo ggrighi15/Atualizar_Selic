@@ -3,15 +3,30 @@ import pandas as pd
 from io import BytesIO
 import re
 
-# ---------- CONFIGURAÇÃO ----------
+# ----------- CONFIGURAÇÃO -----------
 
-LOGO_PATH = "Logotipo Vipal_positivo.png"
+# Troque para True para ativar modo venda Fusione (personalização total)
+MODO_FUSIONE = False
 
-# Paleta VIPAL
+# Cores padrão VIPAL
 VIPAL_AZUL = "#01438F"
 VIPAL_VERMELHO = "#E4003A"
 
-# Lista de índices disponíveis (exemplo)
+# Upload e seleção de paleta no modo Fusione
+if MODO_FUSIONE:
+    st.sidebar.markdown("## Personalização Fusione")
+    fusione_logo = st.sidebar.file_uploader("Logotipo (PNG)", type=['png'])
+    cor_primaria = st.sidebar.color_picker("Cor primária", value=VIPAL_AZUL)
+    cor_secundaria = st.sidebar.color_picker("Cor secundária", value=VIPAL_VERMELHO)
+    if fusione_logo:
+        LOGO_PATH = fusione_logo
+    else:
+        LOGO_PATH = "Logotipo Vipal_positivo.png"
+    VIPAL_AZUL, VIPAL_VERMELHO = cor_primaria, cor_secundaria
+else:
+    LOGO_PATH = "Logotipo Vipal_positivo.png"
+
+# Índices disponíveis
 INDICES = {
     "Selic": {"fonte": "Bacen"},
     "IPCA": {"fonte": "IBGE"},
@@ -19,7 +34,7 @@ INDICES = {
     "IGPM": {"fonte": "FGV"},
 }
 
-# ---------- FUNÇÕES UTILITÁRIAS ----------
+# ----------- FUNÇÕES -----------
 
 def auto_formatar_data(valor):
     v = re.sub(r"\D", "", valor)[:8]
@@ -41,7 +56,6 @@ def validar_data(data):
         return None
 
 def calcular_indice(valor_base, data_inicial, data_final, indice_nome):
-    # Troque pelas funções/calculadoras reais de cada índice!
     dt_ini = pd.to_datetime(data_inicial, dayfirst=True)
     dt_fim = pd.to_datetime(data_final, dayfirst=True)
     meses = max((dt_fim.year - dt_ini.year) * 12 + dt_fim.month - dt_ini.month, 0)
@@ -69,43 +83,63 @@ def exemplo_excel():
         "Valor atualizado": ["1.210,00"]
     })
 
-# ---------- LAYOUT ----------
+# ----------- LAYOUT -----------
 
 st.set_page_config(page_title="Atualização de valores", layout="wide")
 
-# Logo e título
-col_logo, col_title = st.columns([1, 8])
+# CSS para forçar Montserrat
+st.markdown("""
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+    <style>
+        html, body, [class*="css"]  {
+            font-family: 'Montserrat', sans-serif !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Linha principal com logo e título grande centralizado, índice logo abaixo
+col_logo, col_titulo = st.columns([1.5, 8])
+
 with col_logo:
-    st.image(LOGO_PATH, width=120)
-with col_title:
-    # Seleção de índice
-    indice_nome = st.selectbox(
-        "Escolha o índice",
-        options=list(INDICES.keys()),
-        index=0,
-        key="indice_select",
-        help="Selecione o índice para cálculo"
-    )
-    # Título customizado
+    st.image(LOGO_PATH, width=150 if not MODO_FUSIONE else 110)
+
+with col_titulo:
     st.markdown(
         f"""
-        <div style='display: flex; flex-direction: column; align-items: flex-start;'>
-            <span style='font-size:2.2rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;'>
-                Atualização de valores pela {indice_nome}
+        <div style="text-align:center;">
+            <span style="font-size:2.6rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
+                Atualização de valores pela <span style="text-transform:capitalize;">{{indice}}</span>
             </span>
         </div>
-        """,
-        unsafe_allow_html=True
+        """.replace("{indice}", "Selic"),  # Default antes do selectbox
+        unsafe_allow_html=True,
     )
-    # Fonte alinhada à direita
-    st.markdown(
-        f"""
-        <div style='width:100%;text-align:right;margin-top:-1.2rem;'>
-            <span style='font-size:1rem;color:#444;font-family:Montserrat,sans-serif;'>{INDICES[indice_nome]["fonte"]}</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+
+# Seleção de índice centralizada, logo abaixo do título principal
+indice_nome = st.selectbox(
+    "Escolha o índice", list(INDICES.keys()), key="indice_select", index=0,
+    help="Selecione o índice desejado"
+)
+# Atualiza o título com o índice selecionado
+st.markdown(
+    f"""
+    <div style="text-align:center;">
+        <span style="font-size:2.6rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
+            Atualização de valores pela <span style="text-transform:capitalize;">{indice_nome}</span>
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+# Bacen etc à direita, logo abaixo
+st.markdown(
+    f"""
+    <div style="width:100%;text-align:right;margin-top:-1.1rem;margin-bottom:1rem;">
+        <span style="font-size:1.1rem;color:#444;font-family:Montserrat,sans-serif;">{INDICES[indice_nome]["fonte"]}</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Barra colorida
 st.markdown(
@@ -113,10 +147,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ---------- ATUALIZAÇÃO INDIVIDUAL ----------
-
+# Seções menores (Atualização individual e em massa)
 st.markdown(
-    f"<h2 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:2rem;'>Atualização individual</h2>",
+    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.5rem;'>Atualização individual</h3>",
     unsafe_allow_html=True
 )
 
@@ -149,7 +182,6 @@ with col3:
         help="Digite o valor. Ex: 1000 ou 2.000,00"
     )
 
-# Botão azul com fonte branca
 calcular = st.button(
     "Calcular valor atualizado",
     use_container_width=True,
@@ -182,14 +214,13 @@ if calcular:
 
 if mensagem:
     st.markdown(
-        f"<div style='margin-top:1rem;padding:1rem 1.2rem;background:{cor_mensagem};border-radius:10px;font-size:1.2rem;color:#333;font-weight:500;'>{mensagem}</div>",
+        f"<div style='margin-top:1rem;padding:1rem 1.2rem;background:{cor_mensagem};border-radius:10px;font-size:1.1rem;color:#333;font-weight:500;'>{mensagem}</div>",
         unsafe_allow_html=True,
     )
 
-# ---------- ATUALIZAÇÃO EM MASSA ----------
-
+# ---- Atualização em massa ----
 st.markdown(
-    f"<h2 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;margin-top:3rem;'>Atualização em massa (arquivo Excel)</h2>",
+    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;margin-top:3rem;font-size:1.5rem;'>Atualização em massa (arquivo Excel)</h3>",
     unsafe_allow_html=True
 )
 st.write("Colunas obrigatórias: **data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)**")
@@ -202,7 +233,7 @@ with col_e1:
     st.download_button(
         "Baixar arquivo de exemplo",
         exemplo_bytes,
-        file_name="exemplo_atualizacao_selic.xlsx",
+        file_name="exemplo_atualizacao.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True,
         help="Download do modelo Excel correto"
@@ -246,6 +277,6 @@ if arquivo:
         st.error(f"Erro ao processar o arquivo: {e}")
 
 st.markdown(
-    "<div style='margin-top:3rem;font-size:1.1rem;color:#555;'>Fusione Automação Jurídica por Gustavo Righi</div>",
+    "<div style='margin-top:3rem;font-size:1.1rem;color:#555;font-family:Montserrat,sans-serif;'>Fusione Automação Jurídica por Gustavo Righi</div>",
     unsafe_allow_html=True
 )
