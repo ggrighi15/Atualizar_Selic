@@ -128,17 +128,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- BOTÃO 2: UPLOAD DE ARQUIVO (CENTRALIZADO) ---
-st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:30px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
-
-st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
+# --- UPLOAD DE ARQUIVO (PRIMEIRO, PARA VERIFICAR SE FOI CARREGADO) ---
 uploaded_file = st.file_uploader(
-    "Selecione ou arraste seu arquivo Excel (máximo 200MB)",
+    "",
     type=["xlsx"],
-    key="file",
-    help="Selecione ou arraste seu arquivo Excel"
+    key="file_upload_main",
+    label_visibility="hidden"
 )
-st.markdown("</div></div>", unsafe_allow_html=True)
 
 # --- SEÇÃO INDIVIDUAL (SEMPRE VISÍVEL, MAS DESAPARECE QUANDO ARQUIVO É CARREGADO) ---
 if not uploaded_file:
@@ -200,19 +196,7 @@ if not uploaded_file:
             mensagem = f"Valor atualizado: R$ {atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
             st.markdown(f"<div style='margin:24px auto 0 auto;padding:20px;background:{VIPAL_AZUL};color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;'>{mensagem}</div>", unsafe_allow_html=True)
 
-# --- BOTÃO 2: UPLOAD DE ARQUIVO (CENTRALIZADO) ---
-st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:30px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
-
-st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
-uploaded_file = st.file_uploader(
-    "Selecione ou arraste seu arquivo Excel (máximo 200MB)",
-    type=["xlsx"],
-    key="file",
-    help="Selecione ou arraste seu arquivo Excel"
-)
-st.markdown("</div></div>", unsafe_allow_html=True)
-
-# --- BOTÃO 3: EXPORTAR DADOS OU ARQUIVO DE EXEMPLO (CENTRALIZADO) ---
+# --- BOTÃO 2: EXPORTAR DADOS OU ARQUIVO DE EXEMPLO (CENTRALIZADO) ---
 st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.08rem;margin:20px 0 5px 0;'>Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)</div>""", unsafe_allow_html=True)
 
 exemplo_df = exemplo_excel()
@@ -226,6 +210,20 @@ st.download_button(
     use_container_width=True,
     help="Download do modelo Excel correto"
 )
+st.markdown("</div></div>", unsafe_allow_html=True)
+
+# --- SEÇÃO 3: UPLOAD DE ARQUIVO (ABAIXO DO EXPORTAR) ---
+st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:30px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
+
+st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
+# Recriar o file_uploader aqui para mostrar a interface de upload
+if not uploaded_file:
+    st.markdown("""
+    <div style='border: 2px dashed #ccc; border-radius: 10px; padding: 40px; text-align: center; background-color: #f9f9f9;'>
+        <p style='margin: 0; color: #666; font-family: Montserrat, sans-serif;'>Selecione ou arraste seu arquivo Excel (máximo 200MB)</p>
+        <p style='margin: 5px 0 0 0; color: #999; font-size: 0.9em; font-family: Montserrat, sans-serif;'>Limit 200MB per file • XLSX</p>
+    </div>
+    """, unsafe_allow_html=True)
 st.markdown("</div></div>", unsafe_allow_html=True)
 
 # --- PROCESSAMENTO DO ARQUIVO CARREGADO ---
