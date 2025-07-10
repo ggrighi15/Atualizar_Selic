@@ -83,9 +83,15 @@ def exemplo_excel():
 # --- CONFIG PAGE ---
 st.set_page_config(page_title="Sistema Fusione - Atualização de valores", layout="wide")
 
-# --- CSS: TEMA FUSIONE ---
+# Inicializar session_state se não existir
+if 'data_inicial_formatada' not in st.session_state:
+    st.session_state.data_inicial_formatada = ""
+if 'data_final_formatada' not in st.session_state:
+    st.session_state.data_final_formatada = ""
+
+# --- CSS: TEMA FUSIONE MELHORADO ---
 st.markdown(f"""
-<link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 html, body, [class*="css"] {{
     font-family: {FONTE_MONTSERRAT} !important;
@@ -110,66 +116,75 @@ html, body, [class*="css"] {{
     margin: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }}
+.fusione-logo {{
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 2.2rem;
+    color: {FUSIONE_BRANCO};
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}}
 </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER FUSIONE ---
+# --- HEADER FUSIONE MELHORADO ---
 st.markdown(f"""
 <div style="background: linear-gradient(135deg, {FUSIONE_AZUL_ESCURO} 0%, {FUSIONE_AZUL_MEDIO} 100%); 
-     padding: 20px; margin: -20px -20px 30px -20px; border-radius: 15px 15px 0 0;">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="background: {FUSIONE_BRANCO}; padding: 8px; border-radius: 8px;">
-                <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png" style="height:35px;" />
-            </div>
-            <div>
-                <h1 style="color: {FUSIONE_BRANCO}; margin: 0; font-size: 1.8rem; font-weight: 700;">Sistema Fusione</h1>
-                <p style="color: {FUSIONE_AZUL_CLARO}; margin: 0; font-size: 1rem;">Atualização Monetária</p>
-            </div>
+     padding: 25px; margin: -20px -20px 30px -20px; border-radius: 15px 15px 0 0;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+        <div style="background: {FUSIONE_BRANCO}; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png" style="height:45px;" />
+        </div>
+        <div style="text-align: center;">
+            <div class="fusione-logo">SISTEMA FUSIONE</div>
+            <p style="color: {FUSIONE_AZUL_CLARO}; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 600;">
+                Atualização Monetária Profissional
+            </p>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# --- ESCOLHA O ÍNDICE ---
-st.markdown(f"""<div style="font-weight:700; color:{FUSIONE_AZUL_ESCURO};font-size:1.2rem;font-family:Montserrat,sans-serif;margin-bottom:10px;">Escolha o índice</div>""", unsafe_allow_html=True)
+# --- ESCOLHA O ÍNDICE PRIMEIRO (INVERTIDO COM TÍTULO) ---
+st.markdown(f"""<div style="font-weight:700; color:{FUSIONE_AZUL_ESCURO};font-size:1.3rem;font-family:Montserrat,sans-serif;margin-bottom:15px;text-align:center;">Escolha o índice</div>""", unsafe_allow_html=True)
 
-indice_nome = st.selectbox(
-    "",
-    list(INDICES.keys()),
-    index=0,
-    key="indice_select",
-    help="Selecione o índice desejado"
-)
+col_select, col_space = st.columns([6, 4])
+with col_select:
+    indice_nome = st.selectbox(
+        "",
+        list(INDICES.keys()),
+        index=0,
+        key="indice_select",
+        help="Selecione o índice desejado"
+    )
 
-# --- TÍTULO DINÂMICO E FONTE ---
+# --- TÍTULO DINÂMICO E FONTE (APÓS SELEÇÃO) ---
 col_titulo, col_fonte = st.columns([8, 2])
 with col_titulo:
     st.markdown(
-        f"""<div style="text-align:center;margin:20px 0;">
-            <span style="font-size:2.5rem;font-weight:700;color:{FUSIONE_AZUL_ESCURO};font-family:Montserrat,sans-serif;">
+        f"""<div style="text-align:center;margin:25px 0;">
+            <span style="font-size:2.8rem;font-weight:700;color:{FUSIONE_AZUL_ESCURO};font-family:Montserrat,sans-serif;">
                 Atualização de valores pelo(a) {indice_nome}
             </span>
         </div>""", unsafe_allow_html=True
     )
 with col_fonte:
     st.markdown(
-        f"""<div style="text-align:right; margin-top:40px; font-family:Montserrat,sans-serif;">
-            <span style="font-size:1.1rem; color:{FUSIONE_AZUL_MEDIO};">Fonte do índice: {INDICES[indice_nome]['fonte']}</span>
+        f"""<div style="text-align:right; margin-top:50px; font-family:Montserrat,sans-serif;">
+            <span style="font-size:1.2rem; color:{FUSIONE_AZUL_MEDIO}; font-weight: 600;">Fonte: {INDICES[indice_nome]['fonte']}</span>
         </div>""", unsafe_allow_html=True
     )
 
 # --- BARRA DECORATIVA ---
 st.markdown(
-    f"<div style='height:4px;width:100%;background:linear-gradient(90deg,{FUSIONE_AZUL_ESCURO},{FUSIONE_AZUL_MEDIO},{FUSIONE_AZUL_CLARO});border-radius:4px;margin-bottom:2rem;'></div>",
+    f"<div style='height:6px;width:100%;background:linear-gradient(90deg,{FUSIONE_AZUL_ESCURO},{FUSIONE_AZUL_MEDIO},{FUSIONE_AZUL_CLARO});border-radius:6px;margin-bottom:1.5rem;'></div>",
     unsafe_allow_html=True
 )
 
-# --- SEÇÃO INDIVIDUAL ---
+# --- SEÇÃO INDIVIDUAL (ESPAÇAMENTO REDUZIDO) ---
 st.markdown(f"""
-<div style="background: linear-gradient(135deg, {FUSIONE_AZUL_CLARO}20 0%, {FUSIONE_AZUL_MEDIO}20 100%); 
-     padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-    <h3 style="color: {FUSIONE_AZUL_ESCURO}; margin: 0 0 15px 0; font-family: Montserrat, sans-serif;">
+<div style="background: linear-gradient(135deg, {FUSIONE_AZUL_CLARO}15 0%, {FUSIONE_AZUL_MEDIO}15 100%); 
+     padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+    <h3 style="color: {FUSIONE_AZUL_ESCURO}; margin: 0 0 10px 0; font-family: Montserrat, sans-serif; font-weight: 700;">
         Atualização individual
     </h3>
 </div>
@@ -180,34 +195,34 @@ col1, col2, col3 = st.columns([1,1,1])
 with col1:
     data_inicial = st.text_input(
         "Data inicial (dd/mm/aaaa)",
+        value=st.session_state.data_inicial_formatada,
         max_chars=10,
         help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa",
-        key="data_inicial"
+        key="data_inicial_input"
     )
+    
     # Aplicar formatação automática
-    if data_inicial:
-        data_inicial_formatada = auto_formatar_data(data_inicial)
-        if data_inicial_formatada != data_inicial:
-            st.session_state.data_inicial = data_inicial_formatada
+    if data_inicial != st.session_state.data_inicial_formatada:
+        data_formatada = auto_formatar_data(data_inicial)
+        st.session_state.data_inicial_formatada = data_formatada
+        if data_formatada != data_inicial:
             st.rerun()
-    else:
-        data_inicial_formatada = data_inicial
 
 with col2:
     data_final = st.text_input(
         "Data final (dd/mm/aaaa)",
+        value=st.session_state.data_final_formatada,
         max_chars=10,
         help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa",
-        key="data_final"
+        key="data_final_input"
     )
+    
     # Aplicar formatação automática
-    if data_final:
-        data_final_formatada = auto_formatar_data(data_final)
-        if data_final_formatada != data_final:
-            st.session_state.data_final = data_final_formatada
+    if data_final != st.session_state.data_final_formatada:
+        data_formatada = auto_formatar_data(data_final)
+        st.session_state.data_final_formatada = data_formatada
+        if data_formatada != data_final:
             st.rerun()
-    else:
-        data_final_formatada = data_final
 
 with col3:
     valor_base = st.text_input(
@@ -228,8 +243,8 @@ st.markdown("</div></div>", unsafe_allow_html=True)
 
 # --- RESULTADO ---
 if calcular:
-    dt_ini = validar_data(data_inicial_formatada)
-    dt_fim = validar_data(data_final_formatada)
+    dt_ini = validar_data(st.session_state.data_inicial_formatada)
+    dt_fim = validar_data(st.session_state.data_final_formatada)
     try:
         valor = parse_valor(valor_base)
     except Exception:
@@ -242,12 +257,12 @@ if calcular:
         mensagem = "A data final deve ser posterior à data inicial."
         st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
     else:
-        atualizado = calcular_indice(valor, data_inicial_formatada, data_final_formatada, indice_nome)
+        atualizado = calcular_indice(valor, st.session_state.data_inicial_formatada, st.session_state.data_final_formatada, indice_nome)
         mensagem = f"Valor atualizado: R$ {formatar_valor_monetario(atualizado)}"
-        st.markdown(f"<div style='margin:24px auto 0 auto;padding:20px;background:linear-gradient(135deg,{FUSIONE_AZUL_ESCURO},{FUSIONE_AZUL_MEDIO});color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;'>{mensagem}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='margin:24px auto 0 auto;padding:20px;background:linear-gradient(135deg,{FUSIONE_AZUL_ESCURO},{FUSIONE_AZUL_MEDIO});color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>{mensagem}</div>", unsafe_allow_html=True)
 
 # --- INFORMAÇÕES E EXPORTAR ---
-st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.08rem;margin:20px 0 5px 0;color:{FUSIONE_AZUL_MEDIO};'>Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.08rem;margin:20px 0 5px 0;color:{FUSIONE_AZUL_MEDIO};font-weight:600;'>Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)</div>""", unsafe_allow_html=True)
 
 exemplo_df = exemplo_excel()
 exemplo_bytes = gerar_excel(exemplo_df)
@@ -262,18 +277,18 @@ st.download_button(
 )
 st.markdown("</div></div>", unsafe_allow_html=True)
 
-# --- RODAPÉ FUSIONE ---
+# --- RODAPÉ FUSIONE MELHORADO ---
 st.markdown(f"""
-<div style='margin-top:3rem;padding:20px;background:linear-gradient(135deg,{FUSIONE_AZUL_ESCURO},{FUSIONE_AZUL_MEDIO});
-     border-radius:12px;text-align:center;'>
-    <div style='display:flex;align-items:center;justify-content:center;gap:16px;'>
-        <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png" style="height:25px;" />
-        <span style="font-size:1rem;color:{FUSIONE_BRANCO};font-family:Montserrat,sans-serif;">
-            Fusione Automação | Desenvolvido por Gustavo Giovani Righi
+<div style='margin-top:3rem;padding:25px;background:linear-gradient(135deg,{FUSIONE_AZUL_ESCURO},{FUSIONE_AZUL_MEDIO});
+     border-radius:12px;text-align:center;box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
+    <div style='display:flex;align-items:center;justify-content:center;gap:20px;'>
+        <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png" style="height:30px;" />
+        <span style="font-size:1.1rem;color:{FUSIONE_BRANCO};font-family:Montserrat,sans-serif;font-weight:700;">
+            FUSIONE AUTOMAÇÃO
         </span>
     </div>
-    <p style="color:{FUSIONE_AZUL_CLARO};margin:10px 0 0 0;font-size:0.9rem;">
-        Sistema integrado de gestão empresarial
+    <p style="color:{FUSIONE_AZUL_CLARO};margin:10px 0 0 0;font-size:0.95rem;font-weight:600;">
+        Desenvolvido por Gustavo Giovani Righi | Sistema integrado de gestão empresarial
     </p>
 </div>
 """, unsafe_allow_html=True)
