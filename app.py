@@ -4,15 +4,13 @@ from io import BytesIO
 import re
 
 # ----------- CONFIGURAÇÃO -----------
-
 MODO_FUSIONE = False
 
 # Paleta VIPAL
 VIPAL_AZUL = "#01438F"
 VIPAL_VERMELHO = "#E4003A"
-
 LOGO_PATH = "Logotipo Vipal_positivo.png"
-LOGO_FUSIONE_PATH = "fusione_logo_v2_main.png"  # Ajuste para o nome correto do arquivo
+LOGO_FUSIONE_PATH = "fusione_logo_v2_main.png"
 
 # Índices disponíveis
 INDICES = {
@@ -23,7 +21,6 @@ INDICES = {
 }
 
 # ----------- FUNÇÕES -----------
-
 def auto_formatar_data(valor):
     v = re.sub(r"\D", "", valor)[:8]
     if len(v) >= 5:
@@ -80,55 +77,77 @@ st.markdown("""
     <style>
         html, body, [class*="css"]  { font-family: 'Montserrat', sans-serif !important; }
         .montserrat { font-family: 'Montserrat', sans-serif !important; }
+        .stButton > button { font-weight: 700; }
     </style>
     """, unsafe_allow_html=True)
 
-# Linha principal com logo à esquerda, título logo abaixo alinhado à esquerda
-col_logo, col_gap, col_ref = st.columns([1.5, 0.2, 5])
+# ----------- NOVO BLOCO DE TÍTULO, ÍNDICE E FONTE -----------
+col_logo, col_gap, col_titulo = st.columns([1.7, 0.2, 7])
 
 with col_logo:
-    st.image(LOGO_PATH, width=220)
-    st.write("")  # Força espaço
+    st.image(LOGO_PATH, width=330)  # 50% maior
 
-with col_ref:
+with col_titulo:
+    # Título do índice, alinhado à esquerda
     st.markdown(
-        f"""<div style="margin-top:-20px; margin-bottom:-7px;">
-                <span style="font-size:2.4rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
-                    Atualização de valores
-                </span>
-            </div>""",
+        f"""<div style="margin-top:18px; margin-bottom:-2px; text-align:left;">
+            <span style="font-size:2.6rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
+                Atualização de valores pela Selic
+            </span>
+        </div>""",
         unsafe_allow_html=True,
     )
 
-# Índice e fonte de referência (Bacen/IBGE/etc) 
-col_indice, col_fonte = st.columns([3,1])
-with col_indice:
-    indice_nome = st.selectbox(
-        "Escolha o índice", list(INDICES.keys()), key="indice_select", index=0,
-        help="Selecione o índice desejado"
-    )
-with col_fonte:
-    st.markdown(
-        f"""<div style="text-align:right; margin-top:32px; color:#555; font-size:1.2rem;">
-            {INDICES[indice_nome]["fonte"]}
-        </div>""",
-        unsafe_allow_html=True
-    )
+# Seleção do índice, alinhada à esquerda, tamanho mínimo
+st.markdown(
+    f"""<div style="display:flex; align-items:center; margin-top:14px;">
+        <span style="font-size:1.14rem;font-family:Montserrat,sans-serif;font-weight:600; color:{VIPAL_AZUL};margin-right:16px;">
+            Escolha o índice
+        </span>
+        <div style="min-width:140px;max-width:170px;">
+        """,
+    unsafe_allow_html=True
+)
+indice_nome = st.selectbox(
+    "", list(INDICES.keys()), key="indice_select", index=0, label_visibility='collapsed'
+)
+st.markdown("</div></div>", unsafe_allow_html=True)
 
+# Título dinâmico conforme seleção
+st.markdown(
+    f"""<div style="margin-top:-36px; margin-bottom:-7px; text-align:left;">
+            <span style="font-size:2.6rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
+                Atualização de valores pela {indice_nome}
+            </span>
+        </div>""",
+    unsafe_allow_html=True,
+)
+# Fonte do índice, à direita logo abaixo do título
+st.markdown(
+    f"""<div style="text-align:right; margin-right:20px; margin-top:-8px;">
+        <span style="font-size:1.18rem; color:#555; font-family:Montserrat,sans-serif;">
+            Fonte do índice: {INDICES[indice_nome]["fonte"]}
+        </span>
+    </div>""",
+    unsafe_allow_html=True
+)
+
+# Barra colorida igual ao exemplo
 st.markdown(
     f"""<div style='height:7px;width:100%;background:linear-gradient(90deg,{VIPAL_VERMELHO},#019FFF,#8e44ad);border-radius:8px;margin-bottom:2rem;'></div>""",
     unsafe_allow_html=True
 )
 
 # Upload de arquivo Excel oculta atualização individual
-uploaded_file = st.file_uploader(
+arquivo = st.file_uploader(
     "Selecione seu arquivo Excel para atualização em massa (opcional)",
     type=["xlsx"], key="uploader_massa"
 )
 
-if not uploaded_file:
+# ----------- ATUALIZAÇÃO INDIVIDUAL -----------
+if not arquivo:
     st.markdown(
-        f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;'>Atualização individual</h3>",
+        f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.27rem;margin-bottom:-6px;'>Atualização individual</h3>",
         unsafe_allow_html=True
     )
     col1, col2, col3 = st.columns([1,1,1])
@@ -156,12 +175,18 @@ if not uploaded_file:
             max_chars=20,
             help="Digite o valor. Ex: 1000 ou 2.000,00"
         )
-
+    # Botão centralizado, tamanho igual ao campo do meio
+    st.markdown(
+        """
+        <div style="display:flex;justify-content:center;">
+            <div style="width:100%;">
+        """, unsafe_allow_html=True)
     calcular = st.button(
         "Calcular valor atualizado",
         use_container_width=True,
         type="primary"
     )
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
     mensagem = ""
     cor_mensagem = "#FFDFDF"
@@ -193,33 +218,34 @@ if not uploaded_file:
             unsafe_allow_html=True,
         )
 
+# ----------- MASSA (EM EXCEL) -----------
 st.markdown(
-    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;margin-top:2.3rem;font-size:1.25rem;'>Atualização em massa (arquivo Excel)</h3>",
+    f"<h3 style='color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;margin-top:2.3rem;font-size:1.27rem;'>Atualização em massa (arquivo Excel)</h3>",
     unsafe_allow_html=True
 )
-st.write("Colunas obrigatórias: **data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)**")
-
-exemplo_df = exemplo_excel()
-exemplo_bytes = gerar_excel(exemplo_df)
+st.write("<b>Colunas obrigatórias:</b> data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)", unsafe_allow_html=True)
 
 st.markdown(
-    """<div style='display:flex;justify-content:center;margin-top:12px;'>""",
-    unsafe_allow_html=True,
+    """<div style='margin-bottom:6px; margin-top:10px; font-family:Montserrat,sans-serif;font-size:1.1rem;color:#333;'>Selecione seu arquivo Excel</div>""",
+    unsafe_allow_html=True
 )
-col_e1, col_e2 = st.columns([1,2])
-with col_e1:
-    st.download_button(
-        "Baixar arquivo de exemplo",
-        exemplo_bytes,
-        file_name="exemplo_atualizacao.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-        help="Download do modelo Excel correto"
-    )
-with col_e2:
-    arquivo = uploaded_file
-
-st.markdown("</div>", unsafe_allow_html=True)
+# Mensagem drag and drop ptbr
+st.markdown(
+    """<div style='font-size:0.97rem;color:#555;font-family:Montserrat,sans-serif;margin-top:-16px;margin-bottom:14px;'>
+        Limite 200MB por arquivo • XLSX
+    </div>""", unsafe_allow_html=True
+)
+# Botão de baixar/exemplo, agora "Exportar dados ou arquivo de exemplo", alinhado à esquerda logo abaixo do upload
+exemplo_df = exemplo_excel()
+exemplo_bytes = gerar_excel(exemplo_df)
+st.download_button(
+    "Exportar dados ou arquivo de exemplo",
+    exemplo_bytes,
+    file_name="exemplo_atualizacao.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    use_container_width=True,
+    help="Download do modelo Excel correto"
+)
 
 if arquivo:
     try:
@@ -252,12 +278,13 @@ if arquivo:
     except Exception as e:
         st.error(f"Erro ao processar o arquivo: {e}")
 
-# Rodapé com logo Fusione e assinatura
+# ----------- RODAPÉ -----------
+
 st.markdown(
     f"""
     <div style='margin-top:2.8rem;display:flex;align-items:center;justify-content:center;gap:15px;'>
         <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/fusione_logo_v2_main.png" style="height:32px;" />
-        <span style="font-size:1.09rem;color:#555;font-family:Montserrat,sans-serif;">Fusione | Automações | por Gustavo Giovani Righi</span>
+        <span style="font-size:1.09rem;color:#555;font-family:Montserrat,sans-serif;">Fusione Automação | por Gustavo Giovani Righi</span>
     </div>
     """,
     unsafe_allow_html=True
