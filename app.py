@@ -91,6 +91,43 @@ if arquivo:
         file_name="resultado_atualizado.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+# --- PROCESSAMENTO EM MASSA (ATUALIZAÇÃO EM EXCEL) ---
+if uploaded_file:
+    try:
+        df = pd.read_excel(uploaded_file)
+        # Ajusta nomes das colunas (deixa flexível para nomes equivalentes)
+        df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+        required = ["data_inicial", "data_final", "valor"]
+        if all(col in df.columns for col in required):
+            # Formata datas e valores (automaticamente inclui as barras)
+            df["data_inicial"] = df["data_inicial"].astype(str).apply(auto_formatar_data)
+            df["data_final"] = df["data_final"].astype(str).apply(auto_formatar_data)
+            df["valor"] = df["valor"].astype(str).apply(parse_valor)
+            # Botão de cálculo em massa
+            if st.button("Calcular valores em massa", use_container_width=True, type="primary"):
+                df["valor_atualizado"] = df.apply(
+                    lambda row: calcular_indice(
+                        row["valor"], row["data_inicial"], row["data_final"], indice_nome
+                    ),
+                    axis=1,
+                )
+                # Formata valor atualizado para exibição BR
+                df["valor_atualizado"] = df["valor_atualizado"].apply(
+                    lambda x: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                )
+                st.dataframe(df, use_container_width=True)
+                # Botão para exportar resultados
+                st.download_button(
+                    "Exportar resultados (Excel)",
+                    gerar_excel(df),
+                    file_name="resultado_atualizacao.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+        else:
+            st.warning("Arquivo Excel inválido. Verifique se contém as colunas obrigatórias.")
+    except Exception as e:
+        st.error(f"Erro ao processar arquivo: {e}")
 
 # ---- RODAPÉ ----
 st.caption("Fusione Automação Jurídica by Gustavo Righi")
