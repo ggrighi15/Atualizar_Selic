@@ -18,6 +18,7 @@ INDICES = {
 
 # --- FUNÇÕES AUXILIARES ---
 def auto_formatar_data(valor):
+    """Formata automaticamente a data inserindo barras"""
     v = re.sub(r"\D", "", valor)[:8]
     if len(v) >= 5:
         return f"{v[:2]}/{v[2:4]}/{v[4:]}"
@@ -26,17 +27,26 @@ def auto_formatar_data(valor):
     else:
         return v
 
+def formatar_valor_monetario(valor):
+    """Formata valor no padrão brasileiro 1.000,00"""
+    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 def parse_valor(valor):
+    """Converte string de valor para float"""
+    if not valor:
+        return 0.0
     v = str(valor).replace('.', '').replace(',', '.')
     return float(re.sub(r"[^\d.]", "", v)) if v else 0.0
 
 def validar_data(data):
+    """Valida se a data está no formato correto"""
     try:
         return pd.to_datetime(data, dayfirst=True, errors="raise")
     except Exception:
         return None
 
 def calcular_indice(valor_base, data_inicial, data_final, indice_nome):
+    """Calcula o valor atualizado pelo índice selecionado"""
     dt_ini = pd.to_datetime(data_inicial, dayfirst=True)
     dt_fim = pd.to_datetime(data_final, dayfirst=True)
     meses = max((dt_fim.year - dt_ini.year) * 12 + dt_fim.month - dt_ini.month, 0)
@@ -45,18 +55,18 @@ def calcular_indice(valor_base, data_inicial, data_final, indice_nome):
     return valor_base * ((1 + tx) ** meses)
 
 def gerar_excel(df):
+    """Gera arquivo Excel para download"""
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False)
     return output.getvalue()
 
 def exemplo_excel():
+    """Cria DataFrame de exemplo para download"""
     return pd.DataFrame({
-        "Dados iniciais (dd/mm/aaaa)": ["15/03/2023"],
-        "Dados finais (dd/mm/aaaa)": ["09/07/2025"],
-        "Valor base (R$)": ["1.000,00"],
-        "Índice": ["1,21"],
-        "Valor atualizado": ["1.210,00"]
+        "data_inicial": ["15/03/2023"],
+        "data_final": ["09/07/2025"],
+        "valor": ["1.000,00"]
     })
 
 # --- CONFIG PAGE ---
@@ -79,32 +89,15 @@ html, body, [class*="css"] {{
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGO VIPAL (ESQUERDA, GRANDE) ---
+# --- LOGO VIPAL (ACIMA DO TÍTULO) ---
 st.markdown("""
-<div style="display:flex;align-items:center;gap:40px;">
-    <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/Logotipo%20Vipal_positivo.png" width="330" style="margin-bottom: -16px;"/>
+<div style="display:flex;justify-content:center;margin-bottom:20px;">
+    <img src="https://raw.githubusercontent.com/ggrighi15/Atualizar_Selic/main/Logotipo%20Vipal_positivo.png" width="330"/>
 </div>
 """, unsafe_allow_html=True)
 
-# --- TÍTULO CENTRAL, FONTE DO ÍNDICE À DIREITA ---
-col_titulo, col_fonte = st.columns([10, 2])
-with col_titulo:
-    st.markdown(
-        f"""<div style="text-align:center;margin-top:-120px;margin-bottom:16px;">
-            <span style="font-size:3rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
-                Atualização de valores pelo(a) <span id="indice-title"></span>
-            </span>
-        </div>""", unsafe_allow_html=True
-    )
-with col_fonte:
-    st.markdown(
-        f"""<div style="text-align:right; margin-top:8px; font-family:Montserrat,sans-serif;">
-            <span style="font-size:1.15rem; color:#333;">Fonte do índice: <span id="indice-fonte"></span></span>
-        </div>""", unsafe_allow_html=True
-    )
-
-# --- ESCOLHA O ÍNDICE, SELECTBOX CENTRALIZADO ---
-st.markdown(f"""<div style="text-align:left; font-weight:700; color:{VIPAL_AZUL};font-size:1.32rem;font-family:Montserrat,sans-serif;margin-top:5px;">Escolha o índice</div>""", unsafe_allow_html=True)
+# --- ESCOLHA O ÍNDICE PRIMEIRO (PARA DEFINIR O TÍTULO) ---
+st.markdown(f"""<div style="text-align:left; font-weight:700; color:{VIPAL_AZUL};font-size:1.32rem;font-family:Montserrat,sans-serif;margin-bottom:10px;">Escolha o índice</div>""", unsafe_allow_html=True)
 
 indice_nome = st.selectbox(
     "",
@@ -114,13 +107,22 @@ indice_nome = st.selectbox(
     help="Selecione o índice desejado"
 )
 
-# --- TÍTULO DINÂMICO E FONTE DO ÍNDICE (usando javascript) ---
-st.markdown(f"""
-<script>
-document.getElementById("indice-title").innerText = "{indice_nome}";
-document.getElementById("indice-fonte").innerText = "{INDICES[indice_nome]['fonte']}";
-</script>
-""", unsafe_allow_html=True)
+# --- TÍTULO DINÂMICO CENTRALIZADO E FONTE DO ÍNDICE À DIREITA ---
+col_titulo, col_fonte = st.columns([10, 2])
+with col_titulo:
+    st.markdown(
+        f"""<div style="text-align:center;margin:20px 0;">
+            <span style="font-size:3rem;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;">
+                Atualização de valores pelo(a) {indice_nome}
+            </span>
+        </div>""", unsafe_allow_html=True
+    )
+with col_fonte:
+    st.markdown(
+        f"""<div style="text-align:right; margin-top:40px; font-family:Montserrat,sans-serif;">
+            <span style="font-size:1.15rem; color:#333;">Fonte do índice: {INDICES[indice_nome]['fonte']}</span>
+        </div>""", unsafe_allow_html=True
+    )
 
 # --- BARRA COLORIDA ---
 st.markdown(
@@ -128,77 +130,82 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- UPLOAD DE ARQUIVO (PRIMEIRO, PARA VERIFICAR SE FOI CARREGADO) ---
-uploaded_file = st.file_uploader(
-    "",
-    type=["xlsx"],
-    key="file_upload_main",
-    label_visibility="hidden"
+# --- SEÇÃO INDIVIDUAL (SEMPRE VISÍVEL) ---
+st.markdown(
+    f"""<div style='font-family:Montserrat,sans-serif;font-weight:700;font-size:1.18rem;color:{VIPAL_AZUL};margin-top:18px;margin-bottom:0.5rem;'>Atualização individual</div>""",
+    unsafe_allow_html=True
 )
 
-# --- SEÇÃO INDIVIDUAL (SEMPRE VISÍVEL, MAS DESAPARECE QUANDO ARQUIVO É CARREGADO) ---
-if not uploaded_file:
-    st.markdown(
-        f"""<div style='font-family:Montserrat,sans-serif;font-weight:700;font-size:1.18rem;color:{VIPAL_AZUL};margin-top:18px;margin-bottom:0.5rem;'>Atualização individual</div>""",
-        unsafe_allow_html=True
+col1, col2, col3 = st.columns([1,1,1])
+with col1:
+    data_inicial = st.text_input(
+        "Data inicial (dd/mm/aaaa)",
+        max_chars=10,
+        help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
     )
-    col1, col2, col3 = st.columns([1,1,1])
-    with col1:
-        data_inicial = st.text_input(
-            "Data inicial (dd/mm/aaaa)",
-            max_chars=10,
-            help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
-        )
+    # Aplicar formatação automática em tempo real
+    if data_inicial:
+        data_inicial_formatada = auto_formatar_data(data_inicial)
+        if data_inicial_formatada != data_inicial:
+            st.rerun()
+    else:
         data_inicial_formatada = data_inicial
-        if data_inicial and ("/" not in data_inicial or len(data_inicial.replace("/", "")) == 8):
-            data_inicial_formatada = auto_formatar_data(data_inicial)
-    with col2:
-        data_final = st.text_input(
-            "Data final (dd/mm/aaaa)",
-            max_chars=10,
-            help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
-        )
-        data_final_formatada = data_final
-        if data_final and ("/" not in data_final or len(data_final.replace("/", "")) == 8):
-            data_final_formatada = auto_formatar_data(data_final)
-    with col3:
-        valor_base = st.text_input(
-            "Valor base (R$)",
-            max_chars=20,
-            help="Digite o valor. Ex: 1000 ou 2.000,00"
-        )
 
-    # --- BOTÃO 1: CALCULAR VALOR ATUALIZADO (CENTRALIZADO) ---
-    st.markdown("<div style='display:flex;justify-content:center;margin-top:20px;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
-    calcular = st.button(
-        "Calcular valor atualizado",
-        use_container_width=True,
-        type="primary"
+with col2:
+    data_final = st.text_input(
+        "Data final (dd/mm/aaaa)",
+        max_chars=10,
+        help="Digite a data no formato ddmmaaaa ou dd/mm/aaaa"
     )
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    # Aplicar formatação automática em tempo real
+    if data_final:
+        data_final_formatada = auto_formatar_data(data_final)
+        if data_final_formatada != data_final:
+            st.rerun()
+    else:
+        data_final_formatada = data_final
 
-    # --- RESULTADO CENTRALIZADO ---
-    if calcular:
-        dt_ini = validar_data(data_inicial_formatada)
-        dt_fim = validar_data(data_final_formatada)
-        try:
-            valor = parse_valor(valor_base)
-        except Exception:
-            valor = None
-        if not (dt_ini and dt_fim and valor_base.strip() and valor is not None and valor > 0):
-            mensagem = "Verifique os dados. Formato correto: dd/mm/aaaa e valor em reais."
-            st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
-        elif dt_ini > dt_fim:
-            mensagem = "A data final deve ser posterior à data inicial."
-            st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
-        else:
-            atualizado = calcular_indice(valor, data_inicial_formatada, data_final_formatada, indice_nome)
-            mensagem = f"Valor atualizado: R$ {atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            st.markdown(f"<div style='margin:24px auto 0 auto;padding:20px;background:{VIPAL_AZUL};color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;'>{mensagem}</div>", unsafe_allow_html=True)
+with col3:
+    valor_base = st.text_input(
+        "Valor base (R$)",
+        placeholder="1.000,00",
+        max_chars=20,
+        help="Digite o valor. Ex: 1000 ou 2.000,00"
+    )
 
-# --- BOTÃO 2: EXPORTAR DADOS OU ARQUIVO DE EXEMPLO (CENTRALIZADO) ---
+# --- BOTÃO CALCULAR VALOR ATUALIZADO (CENTRALIZADO) ---
+st.markdown("<div style='display:flex;justify-content:center;margin-top:20px;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
+calcular = st.button(
+    "Calcular valor atualizado",
+    use_container_width=True,
+    type="primary"
+)
+st.markdown("</div></div>", unsafe_allow_html=True)
+
+# --- RESULTADO CENTRALIZADO ---
+if calcular:
+    dt_ini = validar_data(data_inicial_formatada)
+    dt_fim = validar_data(data_final_formatada)
+    try:
+        valor = parse_valor(valor_base)
+    except Exception:
+        valor = None
+    
+    if not (dt_ini and dt_fim and valor_base.strip() and valor is not None and valor > 0):
+        mensagem = "Verifique os dados. Formato correto: dd/mm/aaaa e valor em reais."
+        st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
+    elif dt_ini > dt_fim:
+        mensagem = "A data final deve ser posterior à data inicial."
+        st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
+    else:
+        atualizado = calcular_indice(valor, data_inicial_formatada, data_final_formatada, indice_nome)
+        mensagem = f"Valor atualizado: R$ {formatar_valor_monetario(atualizado)}"
+        st.markdown(f"<div style='margin:24px auto 0 auto;padding:20px;background:{VIPAL_AZUL};color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;'>{mensagem}</div>", unsafe_allow_html=True)
+
+# --- TEXTO COLUNAS OBRIGATÓRIAS ---
 st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.08rem;margin:20px 0 5px 0;'>Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)</div>""", unsafe_allow_html=True)
 
+# --- BOTÃO EXPORTAR DADOS OU ARQUIVO DE EXEMPLO (CENTRALIZADO) ---
 exemplo_df = exemplo_excel()
 exemplo_bytes = gerar_excel(exemplo_df)
 st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
@@ -211,35 +218,6 @@ st.download_button(
     help="Download do modelo Excel correto"
 )
 st.markdown("</div></div>", unsafe_allow_html=True)
-
-# --- SEÇÃO 3: UPLOAD DE ARQUIVO (ABAIXO DO EXPORTAR) ---
-st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:30px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
-
-st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
-# Recriar o file_uploader aqui para mostrar a interface de upload
-if not uploaded_file:
-    st.markdown("""
-    <div style='border: 2px dashed #ccc; border-radius: 10px; padding: 40px; text-align: center; background-color: #f9f9f9;'>
-        <p style='margin: 0; color: #666; font-family: Montserrat, sans-serif;'>Selecione ou arraste seu arquivo Excel (máximo 200MB)</p>
-        <p style='margin: 5px 0 0 0; color: #999; font-size: 0.9em; font-family: Montserrat, sans-serif;'>Limit 200MB per file • XLSX</p>
-    </div>
-    """, unsafe_allow_html=True)
-st.markdown("</div></div>", unsafe_allow_html=True)
-
-# --- PROCESSAMENTO DO ARQUIVO CARREGADO ---
-if uploaded_file:
-    # Esconde a seção individual quando arquivo é carregado
-    st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-top:30px;'>Arquivo carregado com sucesso!</div>""", unsafe_allow_html=True)
-    
-    try:
-        df = pd.read_excel(uploaded_file)
-        st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.1rem;margin:15px 0;'>Processando {len(df)} registros...</div>""", unsafe_allow_html=True)
-        
-        # Aqui você pode adicionar o processamento do arquivo Excel
-        # Por exemplo, aplicar os cálculos de atualização em massa
-        
-    except Exception as e:
-        st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>Erro ao processar arquivo: {str(e)}</div>", unsafe_allow_html=True)
 
 # --- RODAPÉ: FUSIONE CENTRALIZADO ---
 st.markdown(
