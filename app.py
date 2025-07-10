@@ -128,18 +128,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- UPLOAD (ATUALIZAÇÃO EM MASSA) CENTRALIZADO ---
-st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:8px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
+# --- BOTÃO 2: UPLOAD DE ARQUIVO (CENTRALIZADO) ---
+st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:30px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
 
+st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
 uploaded_file = st.file_uploader(
-    "Selecione ou arraste seu arquivo Excel",
+    "Selecione ou arraste seu arquivo Excel (máximo 200MB)",
     type=["xlsx"],
     key="file",
-    label_visibility='collapsed',
     help="Selecione ou arraste seu arquivo Excel"
 )
+st.markdown("</div></div>", unsafe_allow_html=True)
 
-# --- CAMPOS INDIVIDUAIS (APARECE SÓ SE NÃO HOUVER UPLOAD) ---
+# --- SEÇÃO INDIVIDUAL (SEMPRE VISÍVEL, MAS DESAPARECE QUANDO ARQUIVO É CARREGADO) ---
 if not uploaded_file:
     st.markdown(
         f"""<div style='font-family:Montserrat,sans-serif;font-weight:700;font-size:1.18rem;color:{VIPAL_AZUL};margin-top:18px;margin-bottom:0.5rem;'>Atualização individual</div>""",
@@ -170,16 +171,17 @@ if not uploaded_file:
             max_chars=20,
             help="Digite o valor. Ex: 1000 ou 2.000,00"
         )
-    # Botão Calcular centralizado
-    st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
+
+    # --- BOTÃO 1: CALCULAR VALOR ATUALIZADO (CENTRALIZADO) ---
+    st.markdown("<div style='display:flex;justify-content:center;margin-top:20px;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
     calcular = st.button(
         "Calcular valor atualizado",
         use_container_width=True,
         type="primary"
     )
     st.markdown("</div></div>", unsafe_allow_html=True)
+
     # --- RESULTADO CENTRALIZADO ---
-    mensagem = ""
     if calcular:
         dt_ini = validar_data(data_inicial_formatada)
         dt_fim = validar_data(data_final_formatada)
@@ -189,30 +191,33 @@ if not uploaded_file:
             valor = None
         if not (dt_ini and dt_fim and valor_base.strip() and valor is not None and valor > 0):
             mensagem = "Verifique os dados. Formato correto: dd/mm/aaaa e valor em reais."
-            st.markdown(
-                f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
         elif dt_ini > dt_fim:
             mensagem = "A data final deve ser posterior à data inicial."
-            st.markdown(
-                f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>{mensagem}</div>", unsafe_allow_html=True)
         else:
             atualizado = calcular_indice(valor, data_inicial_formatada, data_final_formatada, indice_nome)
             mensagem = f"Valor atualizado: R$ {atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            st.markdown(
-                f"<div style='margin:24px auto 0 auto;padding:20px;background:{VIPAL_AZUL};color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;'>{mensagem}</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div style='margin:24px auto 0 auto;padding:20px;background:{VIPAL_AZUL};color:#fff;font-weight:700;border-radius:12px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;font-size:1.27rem;'>{mensagem}</div>", unsafe_allow_html=True)
 
-# --- CAMPOS DO UPLOAD, COLUNAS OBRIGATÓRIAS, EXPORTAR ---
+# --- BOTÃO 2: UPLOAD DE ARQUIVO (CENTRALIZADO) ---
+st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-bottom:12px;margin-top:30px;'>Atualização em massa (opcional)</div>""", unsafe_allow_html=True)
+
+st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
+uploaded_file = st.file_uploader(
+    "Selecione ou arraste seu arquivo Excel (máximo 200MB)",
+    type=["xlsx"],
+    key="file",
+    help="Selecione ou arraste seu arquivo Excel"
+)
+st.markdown("</div></div>", unsafe_allow_html=True)
+
+# --- BOTÃO 3: EXPORTAR DADOS OU ARQUIVO DE EXEMPLO (CENTRALIZADO) ---
 st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.08rem;margin:20px 0 5px 0;'>Colunas obrigatórias: data_inicial (dd/mm/aaaa), data_final (dd/mm/aaaa), valor (1.000,00)</div>""", unsafe_allow_html=True)
 
 exemplo_df = exemplo_excel()
 exemplo_bytes = gerar_excel(exemplo_df)
-st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:650px;'>", unsafe_allow_html=True)
+st.markdown("<div style='display:flex;justify-content:center;'><div style='width:100%;max-width:510px;'>", unsafe_allow_html=True)
 st.download_button(
     "Exportar dados ou arquivo de exemplo",
     exemplo_bytes,
@@ -222,6 +227,21 @@ st.download_button(
     help="Download do modelo Excel correto"
 )
 st.markdown("</div></div>", unsafe_allow_html=True)
+
+# --- PROCESSAMENTO DO ARQUIVO CARREGADO ---
+if uploaded_file:
+    # Esconde a seção individual quando arquivo é carregado
+    st.markdown(f"""<div style='text-align:center;font-weight:700;color:{VIPAL_AZUL};font-family:Montserrat,sans-serif;font-size:1.25rem;margin-top:30px;'>Arquivo carregado com sucesso!</div>""", unsafe_allow_html=True)
+    
+    try:
+        df = pd.read_excel(uploaded_file)
+        st.markdown(f"""<div style='text-align:center;font-family:Montserrat,sans-serif;font-size:1.1rem;margin:15px 0;'>Processando {len(df)} registros...</div>""", unsafe_allow_html=True)
+        
+        # Aqui você pode adicionar o processamento do arquivo Excel
+        # Por exemplo, aplicar os cálculos de atualização em massa
+        
+    except Exception as e:
+        st.markdown(f"<div style='margin:18px auto 0 auto;padding:20px;background:#fff;color:{VIPAL_VERMELHO};border:2px solid {VIPAL_VERMELHO};border-radius:10px;width:100%;max-width:650px;text-align:center;font-family:Montserrat,sans-serif;'>Erro ao processar arquivo: {str(e)}</div>", unsafe_allow_html=True)
 
 # --- RODAPÉ: FUSIONE CENTRALIZADO ---
 st.markdown(
@@ -233,3 +253,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
